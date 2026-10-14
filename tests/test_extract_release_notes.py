@@ -84,4 +84,3 @@ def test_usage_error_on_extra_arguments(tmp_path: Path) -> None:
     assert result.returncode == 2
     assert "usage: extract_release_notes.py vX.Y.Z" in result.stderr
     assert not (tmp_path / "RELEASE_NOTES.md").exists()
-
