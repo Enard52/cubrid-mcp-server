@@ -135,6 +135,18 @@ def test_list_indexes_groups_columns(fake_db: FakeDatabase) -> None:
     assert len(result[1]["columns"]) == 2
 
 
+def test_list_indexes_returns_no_indexes_for_a_table_without_rows(
+    fake_db: FakeDatabase,
+) -> None:
+    fake_db.queue([("users",)])  # _resolve_table lookup
+    fake_db.queue([])  # the table exists, but db_index has no rows for it
+    assert server.list_indexes("users") == []
+    # The index query really ran, so the empty result is the catalog's, not a
+    # skipped lookup; and no index was invented for the resolved table.
+    assert len(fake_db.calls) == 2
+    assert "db_index" in fake_db.calls[1][0]
+
+
 def test_describe_table(fake_db: FakeDatabase) -> None:
     fake_db.queue([("users",)])  # _resolve_table lookup
     fake_db.queue([("id", "INTEGER", "NO", None)])
