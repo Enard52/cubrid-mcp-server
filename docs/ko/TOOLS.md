@@ -1,6 +1,8 @@
 # 도구 참조 (한국어)
 
 > 🌐 [TOOLS.md](https://github.com/cubrid-lab/cubrid-mcp-server/blob/main/docs/TOOLS.md)의 번역입니다. 영어 원문이 표준이며, 페이지 번역은 경고 수준의 동기화 규칙을 따릅니다.
+>
+> English: [Tools Reference](../TOOLS.md)
 
 `cubrid-mcp-server`는 MCP **도구**·**리소스**·**프롬프트**로 기능을 노출합니다. 모든 도구는 선택적 `connection` 인자를 받으며( [멀티커넥션](MULTI_CONNECTION.md) 참고), 생략하면 `default` 연결을 대상으로 합니다.
 
@@ -302,7 +304,7 @@ CUBRID `SHOW TRACE`를 통해 `SELECT`/`WITH` 문의 실행 계획/트레이스�
 
 #### `list_serials(connection=None)`
 
-CUBRID `SERIAL` 시퀀스와 현재값·최솟값·최댓값·증분. (`db_serial` 카탈로그의 컬럼명은 CUBRID 11.4에서 `att_name`→`attr_name`으로 개명되어, 서버 버전에 따라 자동으로 해석합니다.)
+CUBRID `SERIAL` 시퀀스와 현재값·최솟값·최댓값·증분. (`db_serial` 카탈로그의 컬럼명은 CUBRID 11.4에서 `att_name`→`attr_name`으로 개명되어, 서버 버전에 따라 자동으로 해석합니다. 연결마다 한 번 확인하며, 서버가 한쪽 이름을 거부할 때만 다른 이름을 시도합니다. 확인 중의 타임아웃이나 연결 끊김은 그대로 보고되고, 확인에 쓴 연결이 재설정되면 그 결과를 새 연결에 쓰지 않고 `connection was reset while probing db_serial; retry the request`로 실패합니다.)
 
 예시: `list_serials()` 응답
 
