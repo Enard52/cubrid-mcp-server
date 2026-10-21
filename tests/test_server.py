@@ -438,6 +438,16 @@ def test_list_serials(fake_db: FakeDatabase) -> None:
     assert result[0]["cyclic"] is False
 
 
+def test_list_serials_empty_catalog_returns_empty_list(fake_db: FakeDatabase) -> None:
+    fake_db.queue([])
+    assert server.list_serials() == []
+    # Exactly one catalog read and nothing after it: an empty db_serial result
+    # must not raise and must not trigger a follow-up metadata query.
+    assert len(fake_db.calls) == 1
+    assert "FROM db_serial" in fake_db.calls[0][0]
+    assert fake_db.responses == []
+
+
 def test_list_class_hierarchy_all(fake_db: FakeDatabase) -> None:
     fake_db.queue([("child", "parent"), ("child", "mixin"), ("grand", "child")])
     result = server.list_class_hierarchy()
