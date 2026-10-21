@@ -82,6 +82,21 @@ def test_filter_table_names(fake_db: FakeDatabase) -> None:
     assert server.filter_table_names("user") == ["users", "user_roles"]
 
 
+def test_filter_table_names_accepts_mixed_case_and_padded_substrings(
+    fake_db: FakeDatabase,
+) -> None:
+    # #292: the search is case-insensitive and the substring is stripped, so
+    # caller text in another case or padded with spaces and tab/newline still
+    # matches the same catalog entries.
+    padded = chr(9) + "user" + chr(10)
+    for substring in ("USER", "  user ", padded):
+        fake_db.queue([("users",), ("orders",), ("user_roles",)])
+        assert server.filter_table_names(substring) == ["users", "user_roles"]
+    # Stripping must not turn a present table into a broader match.
+    fake_db.queue([("users",), ("orders",)])
+    assert server.filter_table_names(" USERS ") == ["users"]
+
+
 def test_filter_table_names_no_match(fake_db: FakeDatabase) -> None:
     fake_db.queue([("users",), ("orders",)])
     assert server.filter_table_names("absent") == []
@@ -374,6 +389,36 @@ def test_table_row_counts_explicit(fake_db: FakeDatabase) -> None:
         "truncated": False,
         "total_tables": 2,
     }
+
+
+def test_table_row_counts_matches_names_but_quotes_the_canonical_one(
+    fake_db: FakeDatabase,
+) -> None:
+    # #292: lookup accepts mixed case and padding, but the emitted COUNT(*) is
+    # built from the catalog's canonical name, never from the caller's text.
+    fake_db.queue([("users",), ("orders",)])
+    fake_db.queue([(42,)])
+    fake_db.queue([(7,)])
+    result = server.table_row_counts([" USERS ", "Orders"])
+    assert result["tables"] == [
+        {"table": "users", "row_count": 42},
+        {"table": "orders", "row_count": 7},
+    ]
+    assert [sql for sql, _ in fake_db.calls[1:]] == [
+        'SELECT COUNT(*) FROM "users"',
+        'SELECT COUNT(*) FROM "orders"',
+    ]
+    # A padded name that matches nothing still fails closed: the caller's text
+    # is echoed in the result and no statement is built from it at all.
+    fake_db.queue([("users",), ("orders",)])
+    calls_before = len(fake_db.calls)
+    padded_missing = chr(9) + "MISSING "
+    missing = server.table_row_counts([padded_missing])
+    assert missing["tables"] == [
+        {"table": padded_missing, "row_count": None, "error": "unknown table"}
+    ]
+    # Only the catalog read was issued — no COUNT(*) built from that text.
+    assert len(fake_db.calls) == calls_before + 1
 
 
 def test_table_row_counts_rejects_unknown_table(fake_db: FakeDatabase) -> None:
